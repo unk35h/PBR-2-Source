@@ -27,7 +27,7 @@ def from_images(src: dict[str, Image], name: str, mode: MaterialMode, target: Ga
 		albedo.size,
 		normal.size,
 		name,
-		albedo=texops.normalize(albedo, mode='RGB'),
+		albedo=texops.normalize(albedo, mode='RGBA'),
 		roughness=texops.normalize(roughness, normal.size, mode='L'),
 		metallic=texops.normalize(metallic, normal.size, mode='L'),
 		emit=texops.normalize(emit, albedo.size, noAlpha=True) if emit else None,

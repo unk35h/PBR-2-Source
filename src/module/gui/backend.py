@@ -13,7 +13,8 @@ from ..preset import Preset
 from ..logger import log
 
 from pathlib import Path
-from enum import StrEnum
+# from enum import StrEnum
+from backports.strenum import StrEnum
 from typing import Callable
 
 class ImageRole(StrEnum):
@@ -155,7 +156,7 @@ class CoreBackend():
 			texSize,
 			detailSize,
 			self.name,
-			albedo=texops.normalize(albedo, detailSize, mode='RGB'),
+			albedo=texops.normalize(albedo, detailSize, mode='RGBA'),
 			roughness=texops.normalize(roughness, detailSize, mode='L'),
 			metallic=texops.normalize(metallic, detailSize, mode='L'),
 			emit=texops.normalize(emit, detailSize, noAlpha=True) if emit else None,

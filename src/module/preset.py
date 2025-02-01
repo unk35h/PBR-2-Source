@@ -4,8 +4,8 @@ from .core.material import MaterialMode, GameTarget, NormalType
 
 class Preset():
 	paths: dict[str, Path] = {}
-	game: GameTarget = GameTarget.V2011
-	mode: MaterialMode = MaterialMode.PBRModel
+	game: GameTarget = GameTarget.V2007 #game: GameTarget = GameTarget.V2011
+	mode: MaterialMode = MaterialMode.PhongEnvmapAlpha #mode: MaterialMode = MaterialMode.PBRModel
 	normalType: NormalType = NormalType.DX
 	scaleTarget: int = 0
 

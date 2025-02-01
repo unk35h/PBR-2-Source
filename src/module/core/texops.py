@@ -54,15 +54,26 @@ def make_phong_exponent(mat: Material) -> Image:
 	# [...] albedo tinting is a "work in progress" feature and currently un-supported in the current shader in some branches."
 
 	assert mat.roughness != None
+	assert mat.metallic != None
+
+	'''
+	MAX_EXPONENT = 32 # $phongexponentfactor 32
+	exponent_r = mat.roughness.copy().pow(-3).mult(0.8).div(MAX_EXPONENT)
+	exponent_g = Image.blank(mat.size, color=(1,))
+	
+	exponent_b = Image.blank(mat.size, color=(0,))
+	exponent = Image.merge((exponent_r, exponent_g, exponent_b))
+
+	return exponent_r
+	'''
 
 	MAX_EXPONENT = 32 # $phongexponentfactor 32
 	exponent_r = mat.roughness.copy().pow(-3).mult(0.8).div(MAX_EXPONENT)
-	# exponent_g = Image.blank(mat.size, color=(1,))
-	# exponent_b = Image.blank(mat.size, color=(0,))
-	# exponent = Image.merge((exponent_r, exponent_g, exponent_b))
-	
-	# return exponent
-	return exponent_r
+	exponent_g = Image.blank(mat.size, color=(1,))
+	exponent_b = Image.blank(mat.size, color=(0,))
+	exponent = Image.merge((exponent_r, exponent_g, exponent_b))
+
+	return exponent
 
 
 def make_phong_mask(mat: Material) -> Image:
@@ -70,8 +81,10 @@ def make_phong_mask(mat: Material) -> Image:
 
 	assert mat.roughness != None
 
+	# mask = mat.roughness.copy().invert().pow(5).mult(2)
+	# if mat.ao: mask.mult(mat.ao)
+
 	mask = mat.roughness.copy().invert().pow(5).mult(2)
-	if mat.ao: mask.mult(mat.ao)
 
 	return mask
 
@@ -82,15 +95,27 @@ def make_envmask(mat: Material) -> Image:
 	assert mat.metallic != None
 	assert mat.roughness != None
 
+	'''
 	mask1 = mat.metallic.copy().mult(0.75).add(0.25)
 	mask2 = mat.roughness.copy().invert().pow(5)
 	if mat.ao: mask2.mult(mat.ao)
-
+	
 	# Multiply to account for lack of reflectivity when no phong is present
 	if not MaterialMode.has_phong(mat.mode):
 		mask2.mult(2.0)
 
 	return mask1.mult(mask2)
+	'''
+	mask1 = mat.metallic.copy().mult(0.75).add(0.25)
+	mask2 = mat.roughness.copy().invert().pow(5)
+	
+	# Multiply to account for lack of reflectivity when no phong is present
+	if not MaterialMode.has_phong(mat.mode):
+		mask2.mult(2.0)
+
+	envmask = mask1.mult(mask2)
+
+	return envmask
 
 
 def make_basecolor(mat: Material) -> Image:
@@ -100,6 +125,7 @@ def make_basecolor(mat: Material) -> Image:
 	assert mat.roughness != None
 	assert mat.albedo != None
 
+	'''
 	mask = mat.roughness.copy().invert()
 	mask.mult(mat.metallic)
 	mask.invert()
@@ -118,12 +144,34 @@ def make_basecolor(mat: Material) -> Image:
 		if MaterialMode.has_phong(mat.mode):
 			phongmask = make_phong_mask(mat)
 			basetexture = Image.merge((r, g, b, phongmask))
-
 	else:
 		# Envmap mask as basetexture alpha
 		if MaterialMode.embed_envmap(mat.mode):
 			envmask = make_envmask(mat)
 			basetexture = Image.merge((r, g, b, envmask))
+
+	return basetexture
+	'''
+	basetexture = mat.albedo.copy()
+	
+	if basetexture.channels == 4:
+		(r, g, b, a) = basetexture.split()[:4]
+	else:
+		(r, g, b) = basetexture.split()[:3]
+		a = Image.blank(mat.size, color=(1,))
+
+	# Do we need to embed the phong mask instead of envmap mask?
+	if Material.swap_phong_envmap(mat):
+		# Phong mask as basetexture alpha
+		if MaterialMode.has_phong(mat.mode):
+			phongmask = make_phong_mask(mat)
+			basetexture = Image.merge((r, g, b, phongmask))
+	elif MaterialMode.embed_envmap(mat.mode):
+		# Envmap mask as basetexture alpha
+		envmask = make_envmask(mat)
+		basetexture = Image.merge((r, g, b, envmask))
+	else:
+		basetexture = Image.merge((r, g, b, a))
 
 	return basetexture
 
